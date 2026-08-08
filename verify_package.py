@@ -14,13 +14,14 @@ for f in ['app.js','api.js','config.js','config.example.js']:
     p=subprocess.run(['node','--check',str(root/f)],capture_output=True,text=True)
     check('js-syntax:'+f,p.returncode==0,(p.stderr or p.stdout).strip())
 
-idx=(root/'index.html').read_text()
-app=(root/'app.js').read_text()
-api=(root/'api.js').read_text()
-sql=(root/'supabase/schema.sql').read_text()
-wf=(root/'.github/workflows/pages.yml').read_text()
-client=(root/'supabase-client.js').read_text()
-config=(root/'config.js').read_text()
+idx=(root/'index.html').read_text(encoding='utf-8')
+app=(root/'app.js').read_text(encoding='utf-8')
+api=(root/'api.js').read_text(encoding='utf-8')
+sql=(root/'supabase/schema.sql').read_text(encoding='utf-8')
+wf=(root/'.github/workflows/pages.yml').read_text(encoding='utf-8')
+client=(root/'supabase-client.js').read_text(encoding='utf-8')
+config=(root/'config.js').read_text(encoding='utf-8')
+
 
 check('frontend-no-localStorage-database','localStorage.setItem' not in app and 'localStorage.getItem' not in app)
 check('supabase-client-created','createClient' in client and 'SUPABASE_PUBLISHABLE_KEY' in client)
@@ -32,7 +33,8 @@ check('rpc-receive-client',"rpc('receive_procurement'" in api)
 check('rpc-order-client',"rpc('place_order'" in api)
 check('no-secret-value-in-config','sb_secret_' not in config and 'SUPABASE_SERVICE_ROLE_KEY =' not in config)
 check('project-url-configured', 'https://hsxwsutqpsvrueuohahr.supabase.co' in config)
-check('publishable-key-placeholder', 'YOUR_SUPABASE_PUBLISHABLE_KEY' in config)
+check('publishable-key-configured', 'sb_publishable_' in config)
+
 
 for table in ['labs','profiles','inventory_items','containers','vendors','procurement_requests','procurement_items','usage_logs','attachments','audit_logs']:
     check('table:'+table, f'create table if not exists public.{table}' in sql)
@@ -71,6 +73,7 @@ with socketserver.TCPServer(('127.0.0.1',0),Quiet) as httpd:
 
 passed=sum(c['pass'] for c in checks); total=len(checks)
 result={'version':'0.5.1-supabase-project-configured','status':'PASS' if passed==total else 'FAIL','passed':passed,'total':total,'checks':checks,'limitations':['Supabase project URL is configured, but the publishable/anon key is still required before live Auth/RLS/RPC/Storage verification can run.']}
-(root/'VERIFICATION_RESULT.json').write_text(json.dumps(result,indent=2))
+(root/'VERIFICATION_RESULT.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+
 print(json.dumps({'status':result['status'],'passed':passed,'total':total},indent=2))
 sys.exit(0 if passed==total else 1)
