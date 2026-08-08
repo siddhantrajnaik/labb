@@ -1,9 +1,14 @@
 -- Labb v1.0 Admin Bootstrap Script
--- Connects the created Auth users to the existing laboratory record.
+-- Run this script in Supabase Dashboard -> SQL Editor (https://supabase.com/dashboard/project/hsxwsutqpsvrueuohahr/sql/new)
 
 begin;
 
--- Ensure a laboratory record exists or fetch existing lab
+-- Step 1: Auto-confirm Email for both Admin users in auth.users
+update auth.users
+set email_confirmed_at = coalesce(email_confirmed_at, now())
+where email in ('siddhant.admin1@labb.org', 'siddhant.admin2@labb.org');
+
+-- Step 2: Ensure a laboratory record exists & link profiles
 do $$
 declare
   v_lab_id uuid;
@@ -16,7 +21,7 @@ begin
     returning id into v_lab_id;
   end if;
 
-  -- Admin 1
+  -- Insert or update Admin 1 Profile
   insert into public.profiles(id, lab_id, display_name, email, role, active)
   values (
     '9d77db0c-8b80-487b-bb2e-c0cbc27d5151'::uuid,
@@ -33,7 +38,7 @@ begin
     role = 'admin',
     active = true;
 
-  -- Admin 2
+  -- Insert or update Admin 2 Profile
   insert into public.profiles(id, lab_id, display_name, email, role, active)
   values (
     '01985fcd-4f85-4944-8007-44b284ee34b0'::uuid,
