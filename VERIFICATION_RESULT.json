@@ -1,0 +1,386 @@
+{
+  "version": "0.5.1-supabase-project-configured",
+  "status": "PASS",
+  "passed": 75,
+  "total": 75,
+  "checks": [
+    {
+      "name": "file:index.html",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:styles.css",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:app.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:api.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:supabase-client.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:config.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:config.example.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:manifest.webmanifest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:sw.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:supabase/schema.sql",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:supabase/bootstrap_first_admin.sql",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:.github/workflows/pages.yml",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "js-syntax:app.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "js-syntax:api.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "js-syntax:config.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "js-syntax:config.example.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "frontend-no-localStorage-database",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "supabase-client-created",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "auth-password-login",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "realtime-subscription",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "storage-private-client",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rpc-consume-client",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rpc-receive-client",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rpc-order-client",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-secret-value-in-config",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "project-url-configured",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "publishable-key-placeholder",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:labs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:labs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:profiles",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:profiles",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:inventory_items",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:inventory_items",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:containers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:containers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:vendors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:vendors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:procurement_requests",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:procurement_requests",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:procurement_items",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:procurement_items",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:usage_logs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:usage_logs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:attachments",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:attachments",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table:audit_logs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rls:audit_logs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "function:current_lab_id",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "function:current_role",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "function:is_admin",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "function:consume_inventory",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "function:adjust_inventory",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "function:place_order",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "function:receive_procurement",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "storage-bucket",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "storage-lab-scope",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "audit-trigger",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "stock-trigger",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "realtime-publication",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "role-not-user-metadata",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "admin-rpc-checks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pages-checkout-current",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pages-configure-current",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pages-upload-current",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pages-deploy-current",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pages-permissions",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "html-supabase-login",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "http:/",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "http:/index.html",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "http:/app.js",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "http:/api.js",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "http:/supabase-client.js",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "http:/config.js",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "http:/styles.css",
+      "pass": true,
+      "detail": "200"
+    },
+    {
+      "name": "http:/manifest.webmanifest",
+      "pass": true,
+      "detail": "200"
+    }
+  ],
+  "limitations": [
+    "Supabase project URL is configured, but the publishable/anon key is still required before live Auth/RLS/RPC/Storage verification can run."
+  ]
+}
