@@ -1,4 +1,5 @@
-const C='labb-v050-supabase';
+const C='labb-v051-supabase';
+
 const A=['./','./index.html','./styles.css','./app.js','./api.js','./supabase-client.js','./manifest.webmanifest'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(A))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x))))));
