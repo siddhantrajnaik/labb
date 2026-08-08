@@ -36,7 +36,7 @@ check('project-url-configured', 'https://hsxwsutqpsvrueuohahr.supabase.co' in co
 check('publishable-key-configured', 'sb_publishable_' in config)
 
 
-for table in ['labs','profiles','inventory_items','containers','vendors','procurement_requests','procurement_items','usage_logs','attachments','audit_logs']:
+for table in ['labs','profiles','inventory_items','containers','vendors','procurement_requests','procurement_items','usage_logs','attachments','audit_logs','notification_acknowledgements']:
     check('table:'+table, f'create table if not exists public.{table}' in sql)
     check('rls:'+table, f'alter table public.{table} enable row level security' in sql)
 for fn in ['current_lab_id','current_role','is_admin','consume_inventory','adjust_inventory','place_order','receive_procurement']:
@@ -72,8 +72,9 @@ with socketserver.TCPServer(('127.0.0.1',0),Quiet) as httpd:
     httpd.shutdown()
 
 passed=sum(c['pass'] for c in checks); total=len(checks)
-result={'version':'0.5.1-supabase-project-configured','status':'PASS' if passed==total else 'FAIL','passed':passed,'total':total,'checks':checks,'limitations':['Supabase project URL is configured, but the publishable/anon key is still required before live Auth/RLS/RPC/Storage verification can run.']}
+result={'version':'0.6.0-supabase','status':'PASS' if passed==total else 'FAIL','passed':passed,'total':total,'checks':checks}
 (root/'VERIFICATION_RESULT.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+
 
 print(json.dumps({'status':result['status'],'passed':passed,'total':total},indent=2))
 sys.exit(0 if passed==total else 1)
