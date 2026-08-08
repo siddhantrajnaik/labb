@@ -4,10 +4,11 @@ import * as api from './api.js';
 const VERSION='0.6.0-supabase';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
+const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
 const today=()=>new Date().toISOString().slice(0,10);
+const dateLabel=d=>d?new Date(`${d}T00:00:00`).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
 let user=null, profile=null, db={lab:null,inventory:[],containers:[],vendors:[],procurement:[],usage:[],audit:[],acks:[]};
-let page='dashboard', search='', selectedItemId=null, showAckNotifs=false, unsubscribe=null, refreshTimer=null;
+let page='dashboard', search='', selectedInventoryId=null, unsubscribe=null, refreshTimer=null;
 const admin=()=>profile?.role==='admin';
 
 function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
@@ -19,465 +20,124 @@ function csv(){const c=['item_code','sku','name','category','cas','current_stock
 function chip(s){return `<span class="chip ${String(s).toLowerCase()}">${esc(s)}</span>`}
 function modal(title,body,onSave,save='Save'){$('#modal').innerHTML=`<div class="modalbg"><div class="modalbox"><div class="modalhead"><b>${esc(title)}</b><button id="mx">✕</button></div><div class="modalbody">${body}</div><div class="modalfoot"><button id="mc">Cancel</button><button class="primary" id="ms">${esc(save)}</button></div></div></div>`;$('#mx').onclick=$('#mc').onclick=()=>$('#modal').innerHTML='';$('#ms').onclick=async()=>{try{await onSave();$('#modal').innerHTML=''}catch(e){fail(e)}}}
 
-async function refresh(){if(!profile)return;db=await api.loadLabData(profile.lab_id, user.id);updateBadge();render()}
+async function refresh(){if(!profile)return;db=await api.loadLabData(profile.lab_id);updateNotificationBadges();render()}
 function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refresh().catch(fail),250)}
-
-function getNotifications(){
-  const list=[];
-  db.inventory.filter(low).forEach(x=>{
-    list.push({
-      key:`item_low_${x.id}`,
-      type:'warning',
-      title:`Low stock alert: ${x.name}`,
-      message:`Current stock (${x.current_stock} ${x.unit}) is at or below minimum threshold (${x.min_stock} ${x.unit}).`,
-      actionPage:'inventory',
-      itemId:x.id
-    });
-  });
-  db.containers.forEach(c=>{
-    if(c.status!=='ACTIVE'||Number(c.quantity_remaining)<=0)return;
-    const e=expiry(c.expiry_date,db.lab?.expiry_notice_days||90);
-    if(e?.expired){
-      const inv=db.inventory.find(i=>i.id===c.inventory_id);
-      list.push({
-        key:`container_exp_${c.id}`,
-        type:'danger',
-        title:`Expired container: ${c.container_code} (${inv?.name||'Item'})`,
-        message:`Container expired on ${c.expiry_date}. Qty remaining: ${c.quantity_remaining} ${c.unit}.`,
-        actionPage:'inventory',
-        itemId:c.inventory_id
-      });
-    }else if(e?.warning){
-      const inv=db.inventory.find(i=>i.id===c.inventory_id);
-      list.push({
-        key:`container_exp_${c.id}`,
-        type:'warning',
-        title:`Expiring container: ${c.container_code} (${inv?.name||'Item'})`,
-        message:`Container expires in ${e.days} days (${c.expiry_date}). Qty remaining: ${c.quantity_remaining} ${c.unit}.`,
-        actionPage:'inventory',
-        itemId:c.inventory_id
-      });
-    }
-  });
-  const now=new Date();
-  db.procurement.forEach(r=>{
-    if(r.status==='Ordered'&&r.created_at){
-      const days=Math.floor((now-new Date(r.created_at))/86400000);
-      if(days>7){
-        list.push({
-          key:`req_delay_${r.id}`,
-          type:'warning',
-          title:`Delayed procurement: Order #${r.po_number||r.id}`,
-          message:`Order placed ${days} days ago has not been delivered. Expected: ${r.expected_date||'Unspecified'}.`,
-          actionPage:'procurement'
-        });
-      }
-    }
-    if(r.status==='Requested'){
-      list.push({
-        key:`req_pending_${r.id}`,
-        type:'info',
-        title:`Pending procurement request: ${r.project||'General'}`,
-        message:`Requested on ${new Date(r.created_at).toLocaleDateString()} by ${r.requester_name||'Lab member'}.`,
-        actionPage:'procurement'
-      });
-    }
-    if(r.status==='Delivered'&&(r.payment_status==='Unpaid'||!r.invoice_ref)){
-      list.push({
-        key:`req_invoice_${r.id}`,
-        type:'info',
-        title:`Delivered order awaiting invoice: #${r.po_number||r.id}`,
-        message:`Order delivered. Invoice reference or payment status needs reconciliation.`,
-        actionPage:'procurement'
-      });
-    }
-  });
-  return list.map(n=>({...n, ack: db.acks.includes(n.key)}));
-}
-
-function updateBadge(){
-  const notifs=getNotifications();
-  const unack=notifs.filter(n=>!n.ack).length;
-  const b=$('#navBadge');
-  if(b){
-    b.textContent=unack;
-    b.hidden=unack===0;
-  }
-}
-
 async function establish(session){user=session?.user||null;if(!user){showLogin();return}profile=await api.getProfile(user.id);$('#who').textContent=profile.display_name||user.email;$('#role').textContent=profile.role==='admin'?'Lab Admin':'Lab Member';$('#login').style.display='none';$('#app').hidden=false;await refresh();if(unsubscribe)unsubscribe();unsubscribe=api.subscribeLab(profile.lab_id,scheduleRefresh)}
 function showLogin(){user=profile=null;db={lab:null,inventory:[],containers:[],vendors:[],procurement:[],usage:[],audit:[],acks:[]};$('#app').hidden=true;$('#login').style.display='grid';if(unsubscribe){unsubscribe();unsubscribe=null}}
 
-$('#configWarning').hidden=configured;$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!configured)return;const m=$('#loginMessage');m.textContent='Signing in…';try{const r=await api.signIn($('#email').value.trim(),$('#password').value);m.textContent='';await establish(r.session)}catch(x){m.textContent=x.message}});
+$('#configWarning').hidden=configured;
+$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!configured)return;const m=$('#loginMessage');m.textContent='Signing in…';try{const r=await api.signIn($('#email').value.trim(),$('#password').value);m.textContent='';await establish(r.session)}catch(x){m.textContent=x.message}});
 if(configured){api.getSession().then(r=>establish(r.session)).catch(fail);supabase.auth.onAuthStateChange((_e,s)=>{if(!s)showLogin()})}
 
-$$('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;search='';$('#search').value='';$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));render()});
+function setPage(next){page=next;search='';$('#search').value='';$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));render()}
+$$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 $('#search').oninput=e=>{search=e.target.value.toLowerCase();render()};
-$('#newRequest').onclick=()=>requestModal();$('#scan').onclick=()=>scanModal();
+$('#newRequest').onclick=()=>requestModal();
+$('#scan').onclick=()=>scanModal();
+$('#notificationShortcut').onclick=()=>setPage('notifications');
 
-function getMetrics(){
-  const totalVal=db.inventory.reduce((s,x)=>s+Number(x.current_stock||0)*Number(x.unit_cost||0),0);
-  const activeCont=db.containers.filter(c=>c.status==='ACTIVE'&&Number(c.quantity_remaining)>0).length;
-  const lowCount=db.inventory.filter(low).length;
-  const ex=db.containers.map(c=>expiry(c.expiry_date,db.lab?.expiry_notice_days||90)).filter(Boolean);
-  const expCount=ex.filter(e=>e.expired||e.warning).length;
-  const pendingReq=db.procurement.filter(r=>!['Delivered','Closed'].includes(r.status)).length;
-  const orderedVal=db.procurement.reduce((s,r)=>s+Number(r.ordered_total||0),0);
-  
-  const now=new Date();
-  const curMonth=now.getMonth();
-  const curYear=now.getFullYear();
-  const monthSpend=db.procurement.filter(r=>r.created_at&&new Date(r.created_at).getMonth()===curMonth&&new Date(r.created_at).getFullYear()===curYear).reduce((s,r)=>s+Number(r.ordered_total||0),0);
+function metrics(){
+  const horizon=db.lab?.expiry_notice_days||90;
+  const ex=db.containers.filter(c=>Number(c.quantity_remaining)>0&&c.status==='ACTIVE').map(c=>expiry(c.expiry_date,horizon)).filter(Boolean);
+  const month=new Date().toISOString().slice(0,7);
+  const monthSpend=db.procurement.filter(r=>String(r.created_at||'').slice(0,7)===month).reduce((s,r)=>s+Number(r.ordered_total||0),0);
+  const stockValue=db.inventory.reduce((s,x)=>s+Number(x.current_stock||0)*Number(x.unit_cost||0),0);
+  return {
+    inventory:db.inventory.length,
+    containers:db.containers.filter(c=>c.status==='ACTIVE'&&Number(c.quantity_remaining)>0).length,
+    low:db.inventory.filter(low).length,
+    pending:db.procurement.filter(r=>!['Delivered','Closed'].includes(r.status)).length,
+    requested:db.procurement.filter(r=>r.status==='Requested').length,
+    delayed:db.procurement.filter(r=>r.status==='Delayed'||(['Ordered','Partial'].includes(r.status)&&r.expected_date&&r.expected_date<today())).length,
+    ordered:db.procurement.reduce((s,r)=>s+Number(r.ordered_total||0),0),
+    monthSpend, stockValue,
+    expired:ex.filter(e=>e.expired).length,
+    expiring:ex.filter(e=>e.warning).length
+  };
+}
+function stats(){const d=metrics();return `<div class="stats"><div class="stat"><span>Inventory</span><strong>${d.inventory}</strong><small>${d.containers} active containers</small></div><div class="stat"><span>Low stock</span><strong>${d.low}</strong><small>at/below minimum</small></div><div class="stat"><span>Expiry alerts</span><strong>${d.expiring+d.expired}</strong><small>${d.expired} expired</small></div><div class="stat"><span>Monthly spend</span><strong>${money(d.monthSpend)}</strong><small>${d.pending} open requests</small></div></div>`}
 
-  return {totalVal, activeCont, lowCount, expCount, pendingReq, orderedVal, monthSpend};
+function buildNotifications(){
+  const list=[]; const horizon=db.lab?.expiry_notice_days||90;
+  db.inventory.forEach(x=>{if(low(x))list.push({key:`low:${x.id}`,type:'low-stock',severity:Number(x.current_stock)===0?'critical':'warning',title:`Low stock: ${x.name}`,body:`${x.current_stock} ${x.unit} remaining · minimum ${x.min_stock}`,entity:'inventory',entityId:x.id,sort:30})});
+  db.containers.forEach(c=>{if(c.status!=='ACTIVE'||Number(c.quantity_remaining)<=0)return;const e=expiry(c.expiry_date,horizon);const inv=db.inventory.find(x=>x.id===c.inventory_id);if(e?.expired)list.push({key:`expired:${c.id}:${c.expiry_date}`,type:'expiry',severity:'critical',title:`Expired container: ${inv?.name||c.container_code}`,body:`${c.container_code} expired ${Math.abs(e.days)} day${Math.abs(e.days)===1?'':'s'} ago`,entity:'inventory',entityId:c.inventory_id,sort:50});else if(e?.warning)list.push({key:`expiry:${c.id}:${c.expiry_date}`,type:'expiry',severity:e.days<=14?'critical':'warning',title:`Expiring soon: ${inv?.name||c.container_code}`,body:`${c.container_code} expires in ${e.days} day${e.days===1?'':'s'} (${dateLabel(c.expiry_date)})`,entity:'inventory',entityId:c.inventory_id,sort:40-e.days/1000})});
+  db.procurement.forEach(r=>{const overdue=['Ordered','Partial'].includes(r.status)&&r.expected_date&&r.expected_date<today();if(r.status==='Delayed'||overdue)list.push({key:`delay:${r.id}:${r.expected_date||''}`,type:'procurement',severity:'critical',title:`Delayed procurement #${r.id}`,body:`${r.project||'General'} · expected ${dateLabel(r.expected_date)}`,entity:'procurement',entityId:r.id,sort:45});if(admin()&&r.status==='Requested')list.push({key:`request:${r.id}`,type:'procurement',severity:'info',title:`Purchase request awaiting action`,body:`Request #${r.id} · ${r.project||'General'}`,entity:'procurement',entityId:r.id,sort:20});if(admin()&&r.status==='Delivered'&&!r.invoice_ref)list.push({key:`invoice:${r.id}`,type:'procurement',severity:'info',title:`Invoice pending for delivered order`,body:`${r.po_number||`Request #${r.id}`} · ${money(r.ordered_total)}`,entity:'procurement',entityId:r.id,sort:15})});
+  const ack=new Set((db.acks||[]).map(a=>a.notification_key));
+  return list.map(n=>({...n,acknowledged:ack.has(n.key)})).sort((a,b)=>Number(a.acknowledged)-Number(b.acknowledged)||b.sort-a.sort||a.title.localeCompare(b.title));
+}
+function unreadNotifications(){return buildNotifications().filter(n=>!n.acknowledged)}
+function updateNotificationBadges(){const n=unreadNotifications().length;for(const id of ['#notificationCount','#notificationShortcutCount']){const el=$(id);if(!el)continue;el.textContent=n>99?'99+':String(n);el.hidden=n===0}}
+function alertStrip(){const n=unreadNotifications();if(!n.length)return'';return `<div class="alerts notification-strip"><div><b>⚠ ${n.length} item${n.length===1?'':'s'} need attention</b><div class="sub">${n.slice(0,3).map(x=>esc(x.title)).join(' · ')}</div></div><button id="openAlerts">Review</button></div>`}
+
+function render(){
+  if(!profile)return;
+  if(page==='dashboard')dashboardPage();
+  else if(page==='inventory')inventory();
+  else if(page==='inventory-detail')inventoryDetail();
+  else if(page==='procurement')procurement();
+  else if(page==='vendors')vendors();
+  else if(page==='notifications')notificationCenter();
+  else if(page==='analytics')analytics();
+  else settings();
 }
 
-function render(){if(!profile)return;if(page==='dashboard')dashboardPage();else if(page==='inventory')inventory();else if(page==='inventory_detail')inventoryDetailPage();else if(page==='procurement')procurement();else if(page==='vendors')vendors();else if(page==='notifications')notificationsPage();else if(page==='analytics')analytics();else settings()}
-
 function dashboardPage(){
-  const m=getMetrics();
-  const notifs=getNotifications().filter(n=>!n.ack);
-  $('#page').innerHTML=`
-    <div class="page-head">
-      <div>
-        <h1>Executive Dashboard</h1>
-        <p>Real-time laboratory inventory valuation, container tracking, and procurement overview.</p>
-      </div>
-      <div class="actions">
-        <button id="dbNewReq" class="primary">+ New Request</button>
-        ${admin()?'<button id="dbAddItem">+ Add Inventory</button>':''}
-      </div>
-    </div>
-    
-    <div class="stats">
-      <div class="stat">
-        <span>Total Valuation</span>
-        <strong>${money(m.totalVal)}</strong>
-        <small>${db.inventory.length} items · ${m.activeCont} active containers</small>
-      </div>
-      <div class="stat">
-        <span>Low Stock Items</span>
-        <strong class="${m.lowCount>0?'danger':''}">${m.lowCount}</strong>
-        <small>at/below minimum threshold</small>
-      </div>
-      <div class="stat">
-        <span>Expiry Alerts</span>
-        <strong class="${m.expCount>0?'danger':''}">${m.expCount}</strong>
-        <small>expired or near-expiry lots</small>
-      </div>
-      <div class="stat">
-        <span>Monthly Spend</span>
-        <strong>${money(m.monthSpend)}</strong>
-        <small>${m.pendingReq} open procurement orders</small>
-      </div>
-    </div>
-
-    ${notifs.length?`
-      <div class="alerts">
-        <b>🔔 ${notifs.length} active unacknowledged alert${notifs.length>1?'s':''}</b>
-        <div class="sub">${notifs.slice(0,5).map(n=>esc(n.title)).join(' · ')}</div>
-        <div style="margin-top:8px"><button id="btnViewNotifs" style="padding:4px 10px;font-size:11px">Open Notification Center →</button></div>
-      </div>
-    `:''}
-
-    <div class="grid">
-      <section class="panel">
-        <h2>Stock Attention Needed</h2>
-        <div class="table-wrap" style="margin-top:10px">
-          <table>
-            <thead><tr><th>Item</th><th>Stock</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody>
-              ${db.inventory.filter(low).slice(0,6).map(x=>`
-                <tr>
-                  <td><b>${esc(x.name)}</b><div class="sub">${esc(x.category)}</div></td>
-                  <td><b class="danger">${x.current_stock} ${esc(x.unit)}</b><div class="sub">min ${x.min_stock}</div></td>
-                  <td><span class="chip delayed">Low Stock</span></td>
-                  <td><button data-detail="${x.id}" style="padding:4px 8px;font-size:11px">View</button></td>
-                </tr>
-              `).join('')||'<tr><td colspan="4" class="sub">All inventory items above minimum stock levels.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Recent Activity & Audit Log</h2>
-        <div class="audit" style="margin-top:10px">
-          ${db.audit.slice(0,8).map(a=>`
-            <div class="auditrow">
-              <b>${esc(a.action)}</b> · ${esc(a.entity_type)} #${esc(a.entity_id||'')}
-              <div class="sub">${new Date(a.created_at).toLocaleString()} · ${esc(a.actor_email||a.actor_id||'system')}</div>
-            </div>
-          `).join('')||'<div class="sub">No recent activity</div>'}
-        </div>
-      </section>
-    </div>
-  `;
-
-  if(admin())$('#dbAddItem').onclick=itemModal;
-  $('#dbNewReq').onclick=requestModal;
-  if($('#btnViewNotifs')) $('#btnViewNotifs').onclick=()=>{page='notifications';render()};
-  $$('[data-detail]').forEach(b=>b.onclick=()=>{selectedItemId=+b.dataset.detail;page='inventory_detail';render()});
+  const d=metrics(), notes=unreadNotifications().slice(0,5), statusCounts={};db.procurement.forEach(r=>statusCounts[r.status]=(statusCounts[r.status]||0)+1);
+  const maxStatus=Math.max(1,...Object.values(statusCounts));
+  $('#page').innerHTML=`<div class="page-head"><div><h1>Dashboard</h1><p>${esc(db.lab?.name||'Laboratory')} · operational overview</p></div><div class="actions">${admin()?'<button id="dashAddItem">+ Inventory</button>':''}<button class="primary" id="dashRequest">+ Request</button></div></div>
+  <div class="dashboard-metrics">
+    <div class="metric-card"><span>Inventory value</span><strong>${money(d.stockValue)}</strong><small>${d.inventory} catalogued items</small></div>
+    <div class="metric-card ${d.low?'metric-warn':''}"><span>Low stock</span><strong>${d.low}</strong><small>items need replenishment</small></div>
+    <div class="metric-card ${d.expired?'metric-danger':''}"><span>Expiry</span><strong>${d.expired+d.expiring}</strong><small>${d.expired} expired · ${d.expiring} approaching</small></div>
+    <div class="metric-card"><span>Open procurement</span><strong>${d.pending}</strong><small>${d.requested} requested · ${d.delayed} delayed</small></div>
+    <div class="metric-card"><span>This month</span><strong>${money(d.monthSpend)}</strong><small>ordered value</small></div>
+    <div class="metric-card"><span>Active containers</span><strong>${d.containers}</strong><small>physical stock ledger</small></div>
+  </div>
+  <div class="dashboard-grid">
+    <section class="panel attention-panel"><div class="panel-head"><h2>Needs attention</h2><button id="seeAllNotifications">View all</button></div>${notes.length?notes.map(notificationRow).join(''):'<div class="empty-state">No unacknowledged alerts.</div>'}</section>
+    <section class="panel"><h2>Procurement status</h2>${Object.keys(statusCounts).length?Object.entries(statusCounts).map(([k,v])=>`<div class="bar-row"><div><span>${esc(k)}</span><b>${v}</b></div><div class="bar"><i style="width:${Math.max(6,(v/maxStatus)*100)}%"></i></div></div>`).join(''):'<div class="empty-state">No procurement records yet.</div>'}</section>
+    <section class="panel"><h2>Recent usage</h2>${db.usage.slice(0,7).map(u=>`<div class="activity-row"><div><b>${esc(u.item_name||'Inventory use')}</b><div class="sub">${esc(u.project||'General')} · ${new Date(u.created_at).toLocaleString()}</div></div><strong>${u.quantity} ${esc(u.unit||'')}</strong></div>`).join('')||'<div class="empty-state">No usage recorded yet.</div>'}</section>
+    <section class="panel"><h2>Low-stock shortlist</h2>${db.inventory.filter(low).slice(0,7).map(x=>`<button class="list-link" data-detail="${x.id}"><span><b>${esc(x.name)}</b><small>${esc(x.item_code)}</small></span><strong class="danger">${x.current_stock}/${x.min_stock} ${esc(x.unit)}</strong></button>`).join('')||'<div class="empty-state">All items are above their minimum stock level.</div>'}</section>
+  </div>`;
+  $('#dashRequest').onclick=requestModal;if(admin())$('#dashAddItem').onclick=itemModal;$('#seeAllNotifications').onclick=()=>setPage('notifications');
+  $$('[data-detail]').forEach(b=>b.onclick=()=>openInventoryDetail(+b.dataset.detail));
+  $$('[data-ack]').forEach(b=>b.onclick=()=>ackOne(b.dataset.ack));
+  $$('[data-open-notification]').forEach(b=>b.onclick=()=>openNotificationEntity(b.dataset.openNotification));
 }
 
 function inventory(){
   const rows=db.inventory.filter(x=>!search||JSON.stringify(x).toLowerCase().includes(search));
-  $('#page').innerHTML=`
-    <div class="page-head">
-      <div>
-        <h1>Laboratory Inventory</h1>
-        <p>Container-based stock ledger, FEFO automated tracking, and RLS security policies.</p>
-      </div>
-      ${admin()?'<button class="primary" id="addItem">+ Add Item</button>':''}
-    </div>
-    <div class="toolbar">
-      <input id="invSearch" value="${esc(search)}" placeholder="Search item name, SKU, CAS, category...">
-      <button id="exportCsv">Export CSV</button>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>CAS</th>
-            <th>Stock</th>
-            <th>Storage</th>
-            <th>Expiry</th>
-            <th>Project</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map(x=>`
-            <tr>
-              <td>
-                <b data-openitem="${x.id}" style="cursor:pointer;color:var(--p)">${esc(x.name)} 🔗</b>
-                <div class="sub">${esc(x.item_code)} · ${esc(x.sku||'—')} · ${esc(x.category)}</div>
-              </td>
-              <td>${x.cas?esc(x.cas):'—'}</td>
-              <td>
-                <b class="${low(x)?'danger':''}">${x.current_stock} ${esc(x.unit)}</b>
-                <div class="sub">min ${x.min_stock}</div>
-              </td>
-              <td>${esc(x.storage||'—')}</td>
-              <td>${esc(x.expiry_date||'—')}</td>
-              <td>${esc(x.project||'—')}</td>
-              <td>
-                <div class="actions">
-                  <button data-detail="${x.id}">Profile</button>
-                  <button data-use="${x.id}">Use</button>
-                  <button data-cont="${x.id}">Lots</button>
-                  ${admin()?`<button data-adj="${x.id}">Adjust</button><button data-doc="${x.id}">Docs</button>`:''}
-                </div>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-  if(admin())$('#addItem').onclick=itemModal;
-  $('#exportCsv').onclick=()=>dl(csv(),'labb_inventory.csv','text/csv');
+  $('#page').innerHTML=`<div class="page-head"><div><h1>Laboratory Inventory</h1><p>Shared Supabase inventory with container tracking and RLS permissions.</p></div>${admin()?'<button class="primary" id="addItem">+ Add Item</button>':''}</div>${stats()}${alertStrip()}<div class="toolbar"><input id="invSearch" value="${esc(search)}" placeholder="Search item, SKU, CAS..."><button id="exportCsv">Export CSV</button></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>CAS</th><th>Stock</th><th>Storage</th><th>Expiry</th><th>Project</th><th>Actions</th></tr></thead><tbody>${rows.map(x=>`<tr class="clickable-row" data-row-detail="${x.id}"><td><b>${esc(x.name)}</b><div class="sub">${esc(x.item_code)} · ${esc(x.sku||'')}</div></td><td>${x.cas?esc(x.cas):'—'}</td><td><b class="${low(x)?'danger':''}">${x.current_stock} ${esc(x.unit)}</b><div class="sub">min ${x.min_stock}</div></td><td>${esc(x.storage||'—')}</td><td>${dateLabel(x.expiry_date)}</td><td>${esc(x.project||'—')}</td><td><div class="actions"><button data-view="${x.id}">View</button><button data-use="${x.id}">Use</button><button data-cont="${x.id}">Containers</button>${admin()?`<button data-adj="${x.id}">Adjust</button><button data-doc="${x.id}">Docs</button>`:''}<button data-lab="${x.id}">Label</button></div></td></tr>`).join('')}</tbody></table></div>`;
+  if(admin())$('#addItem').onclick=itemModal;$('#exportCsv').onclick=()=>dl(csv(),'labb_inventory.csv','text/csv');if($('#openAlerts'))$('#openAlerts').onclick=()=>setPage('notifications');
   $('#invSearch').oninput=e=>{search=e.target.value.toLowerCase();$('#search').value=e.target.value;inventory()};
-  $$('[data-openitem]').forEach(b=>b.onclick=()=>{selectedItemId=+b.dataset.openitem;page='inventory_detail';render()});
-  $$('[data-detail]').forEach(b=>b.onclick=()=>{selectedItemId=+b.dataset.detail;page='inventory_detail';render()});
-  $$('[data-use]').forEach(b=>b.onclick=()=>usageModal(+b.dataset.use));
-  $$('[data-cont]').forEach(b=>b.onclick=()=>containersModal(+b.dataset.cont));
-  $$('[data-adj]').forEach(b=>b.onclick=()=>adjustModal(+b.dataset.adj));
-  $$('[data-doc]').forEach(b=>b.onclick=()=>documentsModal('inventory',b.dataset.doc));
+  $$('[data-view]').forEach(b=>b.onclick=e=>{e.stopPropagation();openInventoryDetail(+b.dataset.view)});$$('[data-row-detail]').forEach(r=>r.onclick=e=>{if(!e.target.closest('button'))openInventoryDetail(+r.dataset.rowDetail)});$$('[data-use]').forEach(b=>b.onclick=e=>{e.stopPropagation();usageModal(+b.dataset.use)});$$('[data-cont]').forEach(b=>b.onclick=e=>{e.stopPropagation();containersModal(+b.dataset.cont)});$$('[data-adj]').forEach(b=>b.onclick=e=>{e.stopPropagation();adjustModal(+b.dataset.adj)});$$('[data-doc]').forEach(b=>b.onclick=e=>{e.stopPropagation();documentsModal('inventory',b.dataset.doc)});$$('[data-lab]').forEach(b=>b.onclick=e=>{e.stopPropagation();printItem(+b.dataset.lab)});
 }
 
-function inventoryDetailPage(){
-  const item=db.inventory.find(i=>i.id===selectedItemId)||db.inventory[0];
-  if(!item){page='inventory';render();return;}
-  selectedItemId=item.id;
-  const cs=db.containers.filter(c=>c.inventory_id===item.id);
-  const activeCs=cs.filter(c=>c.status==='ACTIVE'&&Number(c.quantity_remaining)>0);
-  const itemUsage=db.usage.filter(u=>u.inventory_id===item.id);
-
-  const stockRatio=item.min_stock>0?Math.min(100, Math.round((item.current_stock/item.min_stock)*100)):100;
-
-  $('#page').innerHTML=`
-    <div class="page-head">
-      <div>
-        <button id="btnBackInv" style="margin-bottom:8px">← Back to Inventory</button>
-        <h1>${esc(item.name)}</h1>
-        <p>${esc(item.item_code)} · Category: ${esc(item.category)} · CAS: ${esc(item.cas||'N/A')}</p>
-      </div>
-      <div class="actions">
-        <button data-use="${item.id}" class="primary">Record Usage</button>
-        ${admin()?`<button data-adj="${item.id}">Adjust Stock</button>`:''}
-        <button data-doc="${item.id}">Documents</button>
-        <button data-lab="${item.id}">Print Label</button>
-      </div>
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <span>Current Stock</span>
-        <strong class="${low(item)?'danger':''}">${item.current_stock} ${esc(item.unit)}</strong>
-        <small>Minimum required: ${item.min_stock} ${esc(item.unit)}</small>
-      </div>
-      <div class="stat">
-        <span>Total Valuation</span>
-        <strong>${money(Number(item.current_stock||0)*Number(item.unit_cost||0))}</strong>
-        <small>Unit cost: ${money(item.unit_cost)} / ${esc(item.unit)}</small>
-      </div>
-      <div class="stat">
-        <span>Active Lots</span>
-        <strong>${activeCs.length}</strong>
-        <small>${cs.length} total containers recorded</small>
-      </div>
-      <div class="stat">
-        <span>Storage & Project</span>
-        <strong>${esc(item.storage||'General')}</strong>
-        <small>Project: ${esc(item.project||'General')}</small>
-      </div>
-    </div>
-
-    <div class="grid" style="margin-bottom:20px">
-      <section class="panel">
-        <h2>Stock Health</h2>
-        <div style="margin-top:12px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-            <span>Stock vs Minimum Target</span>
-            <b>${stockRatio}%</b>
-          </div>
-          <div style="background:#e2e8f0;border-radius:99px;height:12px;overflow:hidden">
-            <div style="width:${Math.min(100,stockRatio)}%;background:${low(item)?'#b91c1c':'#6b21a8'};height:100%"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Item Information</h2>
-        <div style="font-size:13px;line-height:1.8">
-          <div><b>Manufacturer:</b> ${esc(item.manufacturer||'N/A')}</div>
-          <div><b>SKU:</b> ${esc(item.sku||'N/A')}</div>
-          <div><b>Expiry Date:</b> ${esc(item.expiry_date||'N/A')}</div>
-        </div>
-      </section>
-    </div>
-
-    <div class="thread">
-      <section class="panel">
-        <h2>Container & Lot Ledger (FEFO Queue)</h2>
-        <div class="table-wrap" style="margin-top:10px">
-          <table>
-            <thead><tr><th>Container Code</th><th>Lot Number</th><th>Remaining Qty</th><th>Expiry Date</th><th>Storage</th><th>Status</th></tr></thead>
-            <tbody>
-              ${cs.map(c=>`
-                <tr>
-                  <td><b>${esc(c.container_code)}</b></td>
-                  <td>${esc(c.lot_number||'—')}</td>
-                  <td><b>${c.quantity_remaining} ${esc(c.unit)}</b> / <small>${c.quantity_initial}</small></td>
-                  <td>${esc(c.expiry_date||'—')}</td>
-                  <td>${esc(c.storage||'—')}</td>
-                  <td><span class="chip ${c.status==='ACTIVE'?'delivered':'closed'}">${esc(c.status)}</span></td>
-                </tr>
-              `).join('')||'<tr><td colspan="6" class="sub">No containers registered for this item yet.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Consumption History</h2>
-        <div class="table-wrap" style="margin-top:10px">
-          <table>
-            <thead><tr><th>Date</th><th>Quantity</th><th>Project</th><th>Purpose</th><th>User</th></tr></thead>
-            <tbody>
-              ${itemUsage.map(u=>`
-                <tr>
-                  <td>${new Date(u.created_at).toLocaleString()}</td>
-                  <td><b>${u.quantity} ${esc(u.unit)}</b></td>
-                  <td>${esc(u.project||'—')}</td>
-                  <td>${esc(u.purpose||'—')}</td>
-                  <td>${esc(u.used_by||'Member')}</td>
-                </tr>
-              `).join('')||'<tr><td colspan="5" class="sub">No usage recorded for this item yet.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  `;
-
-  $('#btnBackInv').onclick=()=>{page='inventory';render()};
-  $$('[data-use]').forEach(b=>b.onclick=()=>usageModal(+b.dataset.use));
-  $$('[data-adj]').forEach(b=>b.onclick=()=>adjustModal(+b.dataset.adj));
-  $$('[data-doc]').forEach(b=>b.onclick=()=>documentsModal('inventory',b.dataset.doc));
-  $$('[data-lab]').forEach(b=>b.onclick=()=>printItem(+b.dataset.lab));
+function openInventoryDetail(id){selectedInventoryId=id;page='inventory-detail';$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='inventory'));render()}
+function inventoryDetail(){
+  const x=db.inventory.find(i=>i.id===selectedInventoryId);if(!x){setPage('inventory');return}
+  const cs=db.containers.filter(c=>c.inventory_id===x.id).sort((a,b)=>String(a.expiry_date||'9999').localeCompare(String(b.expiry_date||'9999')));
+  const usage=db.usage.filter(u=>u.inventory_id===x.id).slice(0,20);
+  const active=cs.filter(c=>c.status==='ACTIVE'&&Number(c.quantity_remaining)>0), expiring=active.filter(c=>{const e=expiry(c.expiry_date,db.lab?.expiry_notice_days||90);return e?.warning||e?.expired});
+  $('#page').innerHTML=`<div class="breadcrumb"><button id="backInventory">Inventory</button><span>›</span><span>${esc(x.name)}</span></div><div class="detail-hero"><div><div class="eyebrow">${esc(x.category||'Inventory')} · ${esc(x.item_code)}</div><h1>${esc(x.name)}</h1><p>${esc(x.manufacturer||'')} ${x.catalogue_number?`· ${esc(x.catalogue_number)}`:''}</p></div><div class="stock-hero ${low(x)?'stock-low':''}"><span>Available stock</span><strong>${x.current_stock} ${esc(x.unit)}</strong><small>Minimum ${x.min_stock} ${esc(x.unit)}</small></div></div>
+  <div class="detail-actions"><button class="primary" id="detailUse">Record usage</button><button id="detailContainers">Containers</button><button id="detailDocs">Documents</button><button id="detailLabel">Print label</button>${admin()?'<button id="detailAdjust">Adjust stock</button>':''}</div>
+  ${expiring.length?`<div class="alerts"><b>⚠ ${expiring.length} active container${expiring.length===1?'':'s'} have expiry attention.</b><button id="detailNotifications">Open notifications</button></div>`:''}
+  <div class="detail-grid"><section class="panel"><h2>Item profile</h2><div class="meta-grid">${[['SKU',x.sku],['CAS',x.cas],['Formula',x.formula],['Grade',x.grade],['Storage',x.storage],['Project',x.project],['Unit cost',money(x.unit_cost)],['Reference expiry',dateLabel(x.expiry_date)]].map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v||'—')}</b></div>`).join('')}</div>${x.notes?`<div class="detail-notes"><span>Notes</span><p>${esc(x.notes)}</p></div>`:''}</section>
+  <section class="panel"><div class="panel-head"><h2>Container / lot ledger</h2><span class="pill">${active.length} active</span></div><div class="table-wrap"><table><thead><tr><th>Container</th><th>Lot</th><th>Remaining</th><th>Received</th><th>Expiry</th><th>Status</th></tr></thead><tbody>${cs.map(c=>{const e=expiry(c.expiry_date,db.lab?.expiry_notice_days||90);return `<tr><td><b>${esc(c.container_code)}</b></td><td>${esc(c.lot_number||'—')}</td><td>${c.quantity_remaining} ${esc(c.unit)}</td><td>${dateLabel(c.received_date)}</td><td class="${e?.expired?'danger':e?.warning?'warning-text':''}">${dateLabel(c.expiry_date)}</td><td>${chip(c.status)}</td></tr>`}).join('')||'<tr><td colspan="6">No containers yet.</td></tr>'}</tbody></table></div></section>
+  <section class="panel"><h2>Recent consumption</h2>${usage.map(u=>`<div class="activity-row"><div><b>${u.quantity} ${esc(u.unit)} · ${esc(u.project||'General')}</b><div class="sub">${esc(u.purpose||'No purpose recorded')} · ${new Date(u.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="empty-state">No usage recorded for this item.</div>'}</section>
+  <section class="panel"><h2>Stock health</h2><div class="health-list"><div><span>Current / minimum</span><b class="${low(x)?'danger':''}">${x.current_stock} / ${x.min_stock} ${esc(x.unit)}</b></div><div><span>Active lots</span><b>${active.length}</b></div><div><span>Expiry attention</span><b>${expiring.length}</b></div><div><span>Estimated stock value</span><b>${money(Number(x.current_stock||0)*Number(x.unit_cost||0))}</b></div></div></section></div>`;
+  $('#backInventory').onclick=()=>setPage('inventory');$('#detailUse').onclick=()=>usageModal(x.id);$('#detailContainers').onclick=()=>containersModal(x.id);$('#detailDocs').onclick=()=>documentsModal('inventory',x.id);$('#detailLabel').onclick=()=>printItem(x.id);if(admin())$('#detailAdjust').onclick=()=>adjustModal(x.id);if($('#detailNotifications'))$('#detailNotifications').onclick=()=>setPage('notifications');
 }
 
-function notificationsPage(){
-  const allNotifs=getNotifications();
-  const filteredNotifs=showAckNotifs ? allNotifs : allNotifs.filter(n=>!n.ack);
-
-  $('#page').innerHTML=`
-    <div class="page-head">
-      <div>
-        <h1>Notification Center</h1>
-        <p>Per-user persistent alert acknowledgements enforced via Supabase RLS.</p>
-      </div>
-      <div>
-        <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:0;cursor:pointer">
-          <input type="checkbox" id="chkShowAck" ${showAckNotifs?'checked':''}>
-          Show Acknowledged Alerts
-        </label>
-      </div>
-    </div>
-
-    <div class="thread">
-      ${filteredNotifs.map(n=>`
-        <div class="notif-card ${n.type} ${n.ack?'ack':''}">
-          <div>
-            <div style="font-weight:700;font-size:15px">${esc(n.title)} ${n.ack?'<span class="sub">(Acknowledged)</span>':''}</div>
-            <div class="sub" style="margin-top:4px;font-size:13px;color:#475569">${esc(n.message)}</div>
-          </div>
-          <div class="actions">
-            ${n.actionPage?`<button data-goto="${n.actionPage}" ${n.itemId?`data-item="${n.itemId}"`:''}>View Item →</button>`:''}
-            ${n.ack?`
-              <button data-unack="${n.key}">Clear Ack</button>
-            `:`
-              <button data-ack="${n.key}" class="primary">Dismiss / Ack</button>
-            `}
-          </div>
-        </div>
-      `).join('')||`
-        <div class="panel" style="text-align:center;padding:40px;color:var(--muted)">
-          <h3>🎉 No active notifications</h3>
-          <p>All laboratory alerts have been acknowledged or resolved.</p>
-        </div>
-      `}
-    </div>
-  `;
-
-  $('#chkShowAck').onchange=e=>{showAckNotifs=e.target.checked;notificationsPage()};
-  $$('[data-ack]').forEach(b=>b.onclick=async()=>{
-    try{
-      await api.acknowledgeNotification(profile.lab_id, user.id, b.dataset.ack);
-      toast('Notification acknowledged');
-      await refresh();
-    }catch(e){fail(e)}
-  });
-  $$('[data-unack]').forEach(b=>b.onclick=async()=>{
-    try{
-      await api.clearNotificationAck(profile.lab_id, user.id, b.dataset.unack);
-      toast('Acknowledgement cleared');
-      await refresh();
-    }catch(e){fail(e)}
-  });
-  $$('[data-goto]').forEach(b=>b.onclick=()=>{
-    page=b.dataset.goto;
-    if(b.dataset.item){selectedItemId=+b.dataset.item;page='inventory_detail';}
-    render();
-  });
-}
-
-function procurement(){const rows=db.procurement.filter(r=>!search||JSON.stringify(r).toLowerCase().includes(search));$('#page').innerHTML=`<div class="page-head"><div><h1>Procurement</h1><p>Request → order → receive → reconcile → close.</p></div><button class="primary" id="newReq2">+ New Request</button></div><div class="thread">${rows.map(r=>{const v=db.vendors.find(x=>x.id===r.vendor_id);const who=r.requester_name||'Lab member';return `<article class="request"><div class="req-head"><div><b>${esc(v?.name||who)}</b><div class="sub">${new Date(r.created_at).toLocaleDateString()}</div></div>${chip(r.status)}</div><span class="project">${esc(r.project||'General')}</span>${r.items.map(i=>{const inv=db.inventory.find(x=>x.id===i.inventory_id);return `<div class="itemrow"><span>${esc(inv?.name||i.item_name||'Item')}</span><b>${i.received_quantity||0}/${i.quantity} ${esc(i.unit)}</b></div>`}).join('')}<div class="sub">Needed ${esc(r.needed_by||'—')} ${r.po_number?`· ${esc(r.po_number)}`:''}</div><div class="actions" style="margin-top:10px">${admin()&&r.status==='Requested'?`<button data-order="${r.id}">Create Order</button>`:''}${admin()&&['Ordered','Partial'].includes(r.status)?`<button data-rec="${r.id}">Receive</button>`:''}${admin()&&r.status==='Delivered'?`<button data-inv="${r.id}">Invoice</button><button data-close="${r.id}">Close</button>`:''}<button data-docreq="${r.id}">Docs</button>${r.po_number?`<button data-po="${r.id}">Print PO</button>`:''}</div></article>`}).join('')}</div>`;$('#newReq2').onclick=requestModal;$$('[data-order]').forEach(b=>b.onclick=()=>orderModal(+b.dataset.order));$$('[data-rec]').forEach(b=>b.onclick=()=>receiveModal(+b.dataset.rec));$$('[data-inv]').forEach(b=>b.onclick=()=>invoiceModal(+b.dataset.inv));$$('[data-close]').forEach(b=>b.onclick=async()=>{try{await api.closeRequest(+b.dataset.close);toast('Closed');await refresh()}catch(e){fail(e)}});$$('[data-docreq]').forEach(b=>b.onclick=()=>documentsModal('request',b.dataset.docreq));$$('[data-po]').forEach(b=>b.onclick=()=>printPO(+b.dataset.po))}
+function procurement(){const rows=db.procurement.filter(r=>!search||JSON.stringify(r).toLowerCase().includes(search));$('#page').innerHTML=`<div class="page-head"><div><h1>Procurement</h1><p>Request → order → receive → reconcile → close.</p></div><button class="primary" id="newReq2">+ New Request</button></div>${stats()}<div class="thread">${rows.map(r=>{const v=db.vendors.find(x=>x.id===r.vendor_id);const who=r.requester_name||'Lab member';return `<article class="request"><div class="req-head"><div><b>${esc(v?.name||who)}</b><div class="sub">${new Date(r.created_at).toLocaleDateString()}</div></div>${chip(r.status)}</div><span class="project">${esc(r.project||'General')}</span>${r.items.map(i=>{const inv=db.inventory.find(x=>x.id===i.inventory_id);return `<div class="itemrow"><span>${esc(inv?.name||i.item_name||'Item')}</span><b>${i.received_quantity||0}/${i.quantity} ${esc(i.unit)}</b></div>`}).join('')}<div class="sub">Needed ${dateLabel(r.needed_by)} ${r.po_number?`· ${esc(r.po_number)}`:''}</div><div class="actions" style="margin-top:10px">${admin()&&r.status==='Requested'?`<button data-order="${r.id}">Create Order</button>`:''}${admin()&&['Ordered','Partial'].includes(r.status)?`<button data-rec="${r.id}">Receive</button>`:''}${admin()&&r.status==='Delivered'?`<button data-inv="${r.id}">Invoice</button><button data-close="${r.id}">Close</button>`:''}<button data-docreq="${r.id}">Docs</button>${r.po_number?`<button data-po="${r.id}">Print PO</button>`:''}</div></article>`}).join('')}</div>`;$('#newReq2').onclick=requestModal;$$('[data-order]').forEach(b=>b.onclick=()=>orderModal(+b.dataset.order));$$('[data-rec]').forEach(b=>b.onclick=()=>receiveModal(+b.dataset.rec));$$('[data-inv]').forEach(b=>b.onclick=()=>invoiceModal(+b.dataset.inv));$$('[data-close]').forEach(b=>b.onclick=async()=>{try{await api.closeRequest(+b.dataset.close);toast('Closed');await refresh()}catch(e){fail(e)}});$$('[data-docreq]').forEach(b=>b.onclick=()=>documentsModal('request',b.dataset.docreq));$$('[data-po]').forEach(b=>b.onclick=()=>printPO(+b.dataset.po))}
 function vendors(){const rows=db.vendors.filter(v=>!search||JSON.stringify(v).toLowerCase().includes(search));$('#page').innerHTML=`<div class="page-head"><div><h1>Vendors</h1><p>Supplier contacts and procurement partners.</p></div>${admin()?'<button class="primary" id="addVendor">+ Add Vendor</button>':''}</div><div class="vendor-grid">${rows.map(v=>`<div class="card"><h3>${esc(v.name)}</h3><p>${esc(v.contact||'')}</p><div class="sub">${esc(v.email||'')}<br>${esc(v.phone||'')}<br>${esc(v.city||'')}<br>★ ${v.rating||'—'}</div></div>`).join('')}</div>`;if(admin())$('#addVendor').onclick=vendorModal}
-function analytics(){const cats={},projects={};db.inventory.forEach(x=>cats[x.category]=(cats[x.category]||0)+Number(x.current_stock||0)*Number(x.unit_cost||0));db.procurement.forEach(r=>projects[r.project]=(projects[r.project]||0)+Number(r.ordered_total||0));const reorder=db.inventory.filter(low).map(x=>({...x,recommended_order:Math.max(1,Math.ceil(Number(x.min_stock)*2-Number(x.current_stock)))}));$('#page').innerHTML=`<div class="page-head"><div><h1>Analytics</h1><p>Live summaries from the shared Supabase dataset.</p></div></div><div class="grid"><section class="panel"><h2>Reorder suggestions</h2>${reorder.map(x=>`<div class="auditrow"><b>${esc(x.name)}</b><span style="float:right">Order ${x.recommended_order} ${esc(x.unit)}</span></div>`).join('')||'No suggestions'}</section><section class="panel"><h2>Inventory value</h2>${Object.entries(cats).map(([k,v])=>`<div class="auditrow"><b>${esc(k)}</b><span style="float:right">${money(v)}</span></div>`).join('')}</section><section class="panel"><h2>Project spend</h2>${Object.entries(projects).map(([k,v])=>`<div class="auditrow"><b>${esc(k)}</b><span style="float:right">${money(v)}</span></div>`).join('')}</section><section class="panel"><h2>Usage</h2>${db.usage.slice(0,15).map(u=>`<div class="auditrow"><b>${esc(u.item_name||'Inventory use')}</b><span style="float:right">${u.quantity} ${esc(u.unit||'')}</span><div class="sub">${esc(u.project||'')} · ${esc(u.purpose||'')}</div></div>`).join('')||'No usage yet'}</section></div>`}
+
+function notificationRow(n){const badge=n.severity==='critical'?'Critical':n.severity==='warning'?'Warning':'Info';return `<div class="notification-row ${n.acknowledged?'is-acknowledged':''} severity-${n.severity}"><div class="notification-icon">${n.severity==='critical'?'!':n.severity==='warning'?'⚠':'i'}</div><div class="notification-copy"><div><span class="severity-badge">${badge}</span><b>${esc(n.title)}</b></div><div class="sub">${esc(n.body)}</div></div><div class="notification-actions"><button data-open-notification="${esc(n.key)}">Open</button>${n.acknowledged?'<span class="ack-label">Acknowledged</span>':`<button data-ack="${esc(n.key)}" class="primary">Acknowledge</button>`}</div></div>`}
+function notificationCenter(){const all=buildNotifications(), unread=all.filter(n=>!n.acknowledged), acknowledged=all.filter(n=>n.acknowledged);$('#page').innerHTML=`<div class="page-head"><div><h1>Notification Center</h1><p>Operational alerts derived from live inventory and procurement data.</p></div>${unread.length?'<button id="ackAll">Acknowledge all</button>':''}</div><div class="notification-summary"><div><strong>${unread.length}</strong><span>Unacknowledged</span></div><div><strong>${all.filter(n=>!n.acknowledged&&n.severity==='critical').length}</strong><span>Critical</span></div><div><strong>${all.filter(n=>!n.acknowledged&&n.type==='low-stock').length}</strong><span>Low stock</span></div><div><strong>${all.filter(n=>!n.acknowledged&&n.type==='expiry').length}</strong><span>Expiry</span></div></div><section class="panel"><h2>Active</h2>${unread.map(notificationRow).join('')||'<div class="empty-state">Everything is acknowledged. New alerts will appear automatically as data changes.</div>'}</section>${acknowledged.length?`<section class="panel acknowledged-panel"><h2>Acknowledged</h2>${acknowledged.slice(0,25).map(notificationRow).join('')}</section>`:''}`;$$('[data-ack]').forEach(b=>b.onclick=()=>ackOne(b.dataset.ack));$$('[data-open-notification]').forEach(b=>b.onclick=()=>openNotificationEntity(b.dataset.openNotification));if($('#ackAll'))$('#ackAll').onclick=async()=>{try{for(const n of unread)await api.ackNotification(profile.lab_id,n.key);toast('Notifications acknowledged');await refresh()}catch(e){fail(e)}}}
+async function ackOne(key){try{await api.ackNotification(profile.lab_id,key);toast('Acknowledged');await refresh()}catch(e){fail(e)}}
+function openNotificationEntity(key){const n=buildNotifications().find(x=>x.key===key);if(!n)return;if(n.entity==='inventory')openInventoryDetail(Number(n.entityId));else if(n.entity==='procurement'){page='procurement';search=String(n.entityId);$('#search').value=search;$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='procurement'));render();}}
+
+function analytics(){const cats={},projects={};db.inventory.forEach(x=>cats[x.category]=(cats[x.category]||0)+Number(x.current_stock||0)*Number(x.unit_cost||0));db.procurement.forEach(r=>projects[r.project]=(projects[r.project]||0)+Number(r.ordered_total||0));const reorder=db.inventory.filter(low).map(x=>({...x,recommended_order:Math.max(1,Math.ceil(Number(x.min_stock)*2-Number(x.current_stock)))}));$('#page').innerHTML=`<div class="page-head"><div><h1>Analytics</h1><p>Live summaries from the shared Supabase dataset.</p></div></div>${stats()}<div class="grid"><section class="panel"><h2>Reorder suggestions</h2>${reorder.map(x=>`<button class="list-link" data-detail="${x.id}"><span><b>${esc(x.name)}</b><small>${x.current_stock}/${x.min_stock} ${esc(x.unit)}</small></span><strong>Order ${x.recommended_order}</strong></button>`).join('')||'No suggestions'}</section><section class="panel"><h2>Inventory value</h2>${Object.entries(cats).map(([k,v])=>`<div class="auditrow"><b>${esc(k)}</b><span style="float:right">${money(v)}</span></div>`).join('')}</section><section class="panel"><h2>Project spend</h2>${Object.entries(projects).map(([k,v])=>`<div class="auditrow"><b>${esc(k)}</b><span style="float:right">${money(v)}</span></div>`).join('')}</section><section class="panel"><h2>Usage</h2>${db.usage.slice(0,15).map(u=>`<div class="auditrow"><b>${esc(u.item_name||'Inventory use')}</b><span style="float:right">${u.quantity} ${esc(u.unit||'')}</span><div class="sub">${esc(u.project||'')} · ${esc(u.purpose||'')}</div></div>`).join('')||'No usage yet'}</section></div>`;$$('[data-detail]').forEach(b=>b.onclick=()=>openInventoryDetail(+b.dataset.detail))}
 function settings(){$('#page').innerHTML=`<div class="page-head"><div><h1>Settings</h1><p>Supabase connection, laboratory profile and audit history.</p></div><button id="logout">Sign out</button></div><div class="grid"><section class="panel"><h2>Account</h2><b>${esc(profile.display_name||user.email)}</b><p class="sub">${esc(user.email)} · ${esc(profile.role)}</p><div class="notice">Authorization is enforced by Supabase Row Level Security, not by hidden buttons in this page.</div></section><section class="panel"><h2>Laboratory</h2><b>${esc(db.lab?.name||'')}</b><p class="sub">${esc(db.lab?.address||'')}</p>${admin()?'<div class="actions"><button id="editLab">Edit</button><button id="inviteUser">Invite user</button></div>':''}</section><section class="panel"><h2>Backend</h2><p><b>Supabase connected</b></p><p class="sub">Postgres database · Auth · Storage · Realtime</p><p class="sub">Version ${VERSION}</p></section><section class="panel audit"><h2>Audit log</h2>${db.audit.map(a=>`<div class="auditrow"><b>${esc(a.action)}</b> · ${esc(a.entity_type)} #${esc(a.entity_id||'')}<div class="sub">${new Date(a.created_at).toLocaleString()} · ${esc(a.actor_email||a.actor_id||'system')}</div></div>`).join('')||'No audit events'}</section></div>`;$('#logout').onclick=async()=>{await api.signOut();showLogin()};if(admin()){ $('#editLab').onclick=labModal; $('#inviteUser').onclick=inviteUserModal }}
 
 function itemModal(){modal('Add inventory item',`<div class="formgrid"><label>Name<input id="f_name" required></label><label>Category<input id="f_category" value="Chemical"></label><label>SKU<input id="f_sku"></label><label>CAS<input id="f_cas"></label><label>Minimum stock<input id="f_min" type="number" step="any" value="1"></label><label>Unit<input id="f_unit" value="bottles"></label><label>Storage<input id="f_storage"></label><label>Expiry<input id="f_expiry" type="date"></label><label>Project<input id="f_project" value="General"></label><label>Unit cost<input id="f_cost" type="number" step="0.01" value="0"></label><label class="full">Manufacturer<input id="f_manu"></label></div>`,async()=>{if(!$('#f_name').value.trim())throw Error('Name required');await api.addInventory(profile.lab_id,{name:$('#f_name').value.trim(),category:$('#f_category').value.trim(),sku:$('#f_sku').value.trim(),cas:$('#f_cas').value.trim()||null,min_stock:+$('#f_min').value||0,unit:$('#f_unit').value.trim(),storage:$('#f_storage').value.trim(),expiry_date:$('#f_expiry').value||null,project:$('#f_project').value.trim(),unit_cost:+$('#f_cost').value||0,manufacturer:$('#f_manu').value.trim()});toast('Item added');await refresh()})}
@@ -493,7 +153,7 @@ async function documentsModal(type,id){try{const docs=await api.listAttachments(
 
 function inviteUserModal(){modal('Invite lab user',`<div class="formgrid"><label>Email<input id="iu_email" type="email" required></label><label>Display name<input id="iu_name"></label><label>Role<select id="iu_role"><option value="member">Member</option><option value="admin">Admin</option></select></label><label>Invite redirect URL<input id="iu_redirect" value="${esc(location.origin+location.pathname)}"></label></div><div class="notice full">Requires the included Supabase Edge Function <code>invite-user</code> to be deployed.</div>`,async()=>{const email=$('#iu_email').value.trim();if(!email)throw Error('Email required');await api.inviteUser(email,$('#iu_name').value.trim(),$('#iu_role').value,$('#iu_redirect').value.trim());toast('Invitation sent')},'Send invite')}
 function labModal(){modal('Laboratory settings',`<div class="formgrid"><label>Name<input id="l_name" value="${esc(db.lab.name||'')}"></label><label>PO prefix<input id="l_po" value="${esc(db.lab.po_prefix||'LABB-PO')}"></label><label class="full">Address<textarea id="l_addr">${esc(db.lab.address||'')}</textarea></label><label>Expiry notice days<input id="l_days" type="number" value="${db.lab.expiry_notice_days||90}"></label><label>Reorder horizon days<input id="l_reorder" type="number" value="${db.lab.reorder_horizon_days||30}"></label></div>`,async()=>{await api.updateLab(profile.lab_id,{name:$('#l_name').value.trim(),address:$('#l_addr').value.trim(),po_prefix:$('#l_po').value.trim(),expiry_notice_days:+$('#l_days').value||90,reorder_horizon_days:+$('#l_reorder').value||30});toast('Settings saved');await refresh()})}
-function scanModal(){modal('Scan barcode / QR',`<label>Scan or type code<input id="s_code" autofocus placeholder="LABB-000001 / LABC-0000001"></label>`,async()=>{let c=$('#s_code').value.trim();c=c.replace(/^labb:\/\/(inventory|container)\//,'');const i=db.inventory.find(x=>x.item_code===c||x.sku===c),ct=db.containers.find(x=>x.container_code===c);if(i){page='inventory_detail';selectedItemId=i.id;render();toast(i.name)}else if(ct){const inv=db.inventory.find(x=>x.id===ct.inventory_id);$('#modal').innerHTML='';containersModal(inv.id);toast(ct.container_code)}else throw Error('Code not found')},'Find')}
+function scanModal(){modal('Scan barcode / QR',`<label>Scan or type code<input id="s_code" autofocus placeholder="LABB-000001 / LABC-0000001"></label>`,async()=>{let c=$('#s_code').value.trim();c=c.replace(/^labb:\/\/(inventory|container)\//,'');const i=db.inventory.find(x=>x.item_code===c||x.sku===c),ct=db.containers.find(x=>x.container_code===c);if(i){page='inventory';search=i.item_code.toLowerCase();$('#search').value=i.item_code;render();toast(i.name)}else if(ct){const inv=db.inventory.find(x=>x.id===ct.inventory_id);$('#modal').innerHTML='';containersModal(inv.id);toast(ct.container_code)}else throw Error('Code not found')},'Find')}
 function printWindow(body){const w=window.open('','_blank');if(!w)return toast('Allow popups');w.document.write(`<html><head><style>body{font-family:Arial;padding:32px}.label{width:360px;border:2px solid #111;padding:18px}.code{font:700 24px monospace;letter-spacing:2px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #aaa;padding:8px}</style></head><body>${body}<script>setTimeout(()=>print(),250)<\/script></body></html>`);w.document.close()}
 function printItem(id){const x=db.inventory.find(i=>i.id===id);printWindow(`<div class="label"><h2>${esc(x.name)}</h2><div class="code">${esc(x.item_code)}</div><p>${esc(x.sku||'')} · ${esc(x.storage||'')}</p><small>labb://inventory/${esc(x.item_code)}</small></div>`)}
 function printPO(id){const r=db.procurement.find(x=>x.id===id),v=db.vendors.find(x=>x.id===r.vendor_id);printWindow(`<h1>${esc(db.lab.name)}</h1><p>${esc(db.lab.address||'')}</p><h2>${esc(r.po_number)}</h2><p>Vendor: ${esc(v?.name||'—')} · Project: ${esc(r.project||'')}</p><table><tr><th>Item</th><th>Qty</th><th>Unit</th></tr>${r.items.map(i=>{const inv=db.inventory.find(x=>x.id===i.inventory_id);return `<tr><td>${esc(inv?.name||'Item')}</td><td>${i.quantity}</td><td>${esc(i.unit)}</td></tr>`}).join('')}</table><h3>Total ${money(r.ordered_total)}</h3>`)}

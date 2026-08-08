@@ -15,3 +15,7 @@ After the publishable key is configured:
 2. Bootstrap the first admin using `supabase/bootstrap_first_admin.sql` as documented in `SUPABASE_SETUP.md`.
 3. Deploy the repository to GitHub Pages.
 4. Run the live checks in `VERIFICATION_CHECKLIST.md`.
+
+
+## v0.6
+Frontend project URL and publishable key are configured. Run `supabase/migrations/v0.6.sql` before deploying the v0.6 branch.

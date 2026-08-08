@@ -3,4 +3,3 @@
 // NEVER put a service_role or secret key in GitHub Pages.
 export const SUPABASE_URL = 'https://hsxwsutqpsvrueuohahr.supabase.co';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_VH7NeHuyICeHa8AvopBXJg_9sk7v4_i';
-

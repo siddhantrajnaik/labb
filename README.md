@@ -105,3 +105,7 @@ This prevents browser-side partial updates from leaving stock and procurement re
 ## Verification status
 
 The static package, JavaScript syntax, GitHub Pages serving, security-key checks, route/assets and schema invariants were tested in the build environment. A live end-to-end Supabase integration test cannot be performed without your Supabase project URL/keys and hosted database; run `VERIFICATION_CHECKLIST.md` after connecting your project.
+
+
+## v0.6 operational UX
+This branch adds Dashboard, Inventory Detail, and Notification Center on top of the verified v0.5 Supabase backend. Apply `supabase/migrations/v0.6.sql` before deploying this branch. See `V0.6_UPGRADE.md`.

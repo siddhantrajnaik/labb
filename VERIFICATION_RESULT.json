@@ -1,8 +1,8 @@
 {
-  "version": "0.6.0-supabase",
+  "version": "0.6.0-supabase-feature",
   "status": "PASS",
-  "passed": 77,
-  "total": 77,
+  "passed": 103,
+  "total": 103,
   "checks": [
     {
       "name": "file:index.html",
@@ -55,12 +55,22 @@
       "detail": ""
     },
     {
+      "name": "file:supabase/migrations/v0.6.sql",
+      "pass": true,
+      "detail": ""
+    },
+    {
       "name": "file:supabase/bootstrap_first_admin.sql",
       "pass": true,
       "detail": ""
     },
     {
       "name": "file:.github/workflows/pages.yml",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "file:V0.6_UPGRADE.md",
       "pass": true,
       "detail": ""
     },
@@ -81,6 +91,16 @@
     },
     {
       "name": "js-syntax:config.example.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "js-syntax:supabase-client.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "js-syntax:sw.js",
       "pass": true,
       "detail": ""
     },
@@ -125,7 +145,7 @@
       "detail": ""
     },
     {
-      "name": "no-secret-value-in-config",
+      "name": "no-secret-in-config",
       "pass": true,
       "detail": ""
     },
@@ -240,16 +260,6 @@
       "detail": ""
     },
     {
-      "name": "table:notification_acknowledgements",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "rls:notification_acknowledgements",
-      "pass": true,
-      "detail": ""
-    },
-    {
       "name": "function:current_lab_id",
       "pass": true,
       "detail": ""
@@ -316,6 +326,121 @@
     },
     {
       "name": "admin-rpc-checks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "version-060",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard-nav",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard-render",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard-recent-usage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "inventory-detail-route",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "inventory-detail-ledger",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "inventory-detail-consumption",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-nav",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-builder",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-low-stock",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-expiry",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-procurement",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-ack-client",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-table-migration",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-rls-migration",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-user-scope",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-lab-scope",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-realtime",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "notification-base-schema",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "v06-css-dashboard",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "v06-css-notifications",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "service-worker-v060",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "upgrade-doc",
       "pass": true,
       "detail": ""
     },
@@ -388,6 +513,14 @@
       "name": "http:/manifest.webmanifest",
       "pass": true,
       "detail": "200"
+    },
+    {
+      "name": "http:/supabase/migrations/v0.6.sql",
+      "pass": true,
+      "detail": "200"
     }
+  ],
+  "limitations": [
+    "Live Supabase transaction/RLS behavior for the new notification acknowledgement table must be acceptance-tested after applying supabase/migrations/v0.6.sql to the deployed project. Existing v0.5 production backend behavior is not modified by this additive migration."
   ]
 }
