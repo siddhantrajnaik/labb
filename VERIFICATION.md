@@ -1,8 +1,5 @@
-# Verification — Labb v0.6
+# Labb v1.0 verification
 
-Automated package result: **PASS (103/103)**.
+Automated package result: **PASS (109/109)**.
 
-Verified locally: JavaScript syntax, GitHub Pages asset serving, v0.5 security/transactional invariants, Dashboard wiring, Inventory Detail wiring, Notification Center alert generation, notification acknowledgement API wiring, v0.6 RLS migration structure, Realtime registration, absence of secret/service-role credentials, and service-worker cache versioning.
-
-## Required live acceptance
-Apply `supabase/migrations/v0.6.sql`, deploy the branch, then verify acknowledgement persistence with two users plus cross-lab isolation.
+This verifies JavaScript syntax, static GitHub Pages serving, configured Supabase browser connection, absence of secret credentials, v0.6 invariants, final modules, RLS/migration structure and Realtime wiring. Live Supabase acceptance is still required after applying the migration.

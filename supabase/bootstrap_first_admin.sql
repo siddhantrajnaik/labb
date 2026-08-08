@@ -8,6 +8,6 @@ with new_lab as (
   values ('Labb Research Laboratory','Hyderabad, India','LABB-PO')
   returning id
 )
-insert into public.profiles(id,lab_id,display_name,role)
-select 'REPLACE_WITH_AUTH_USER_UUID'::uuid,id,'Dr. Aris','admin' from new_lab;
+insert into public.profiles(id,lab_id,display_name,role,active)
+select 'REPLACE_WITH_AUTH_USER_UUID'::uuid,id,'Dr. Aris','admin',true from new_lab;
 commit;

@@ -1,8 +1,8 @@
 {
-  "version": "0.6.0-supabase-feature",
+  "version": "1.0.0-supabase-final",
   "status": "PASS",
-  "passed": 103,
-  "total": 103,
+  "passed": 109,
+  "total": 109,
   "checks": [
     {
       "name": "file:index.html",
@@ -25,27 +25,7 @@
       "detail": ""
     },
     {
-      "name": "file:supabase-client.js",
-      "pass": true,
-      "detail": ""
-    },
-    {
       "name": "file:config.js",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "file:config.example.js",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "file:manifest.webmanifest",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "file:sw.js",
       "pass": true,
       "detail": ""
     },
@@ -55,12 +35,12 @@
       "detail": ""
     },
     {
-      "name": "file:supabase/migrations/v0.6.sql",
+      "name": "file:supabase/migrations/v1.0.sql",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "file:supabase/bootstrap_first_admin.sql",
+      "name": "file:FINAL_ACCEPTANCE_CHECKLIST.md",
       "pass": true,
       "detail": ""
     },
@@ -70,92 +50,152 @@
       "detail": ""
     },
     {
-      "name": "file:V0.6_UPGRADE.md",
+      "name": "js:app.js",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "js-syntax:app.js",
+      "name": "js:api.js",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "js-syntax:api.js",
+      "name": "js:config.js",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "js-syntax:config.js",
+      "name": "js:supabase-client.js",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "js-syntax:config.example.js",
+      "name": "js:sw.js",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "js-syntax:supabase-client.js",
+      "name": "app:VERSION='1.0.0-supabase'",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "js-syntax:sw.js",
+      "name": "app:function equipmentPage",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "frontend-no-localStorage-database",
+      "name": "app:function samplesPage",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "supabase-client-created",
+      "name": "app:function teamPage",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "auth-password-login",
+      "name": "app:function cameraScan",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "realtime-subscription",
+      "name": "app:function approveModal",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "storage-private-client",
+      "name": "app:BarcodeDetector",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "rpc-consume-client",
+      "name": "nav:dashboard",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "rpc-receive-client",
+      "name": "nav:inventory",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "rpc-order-client",
+      "name": "nav:procurement",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "no-secret-in-config",
+      "name": "nav:vendors",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "project-url-configured",
+      "name": "nav:equipment",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "publishable-key-configured",
+      "name": "nav:samples",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "nav:notifications",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "nav:analytics",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "nav:team",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "nav:settings",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:approveRequest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:updateTeamMember",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:addEquipment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:addBooking",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:addServiceLog",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:addLocation",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:addSample",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "api:updateSample",
       "pass": true,
       "detail": ""
     },
@@ -165,17 +205,7 @@
       "detail": ""
     },
     {
-      "name": "rls:labs",
-      "pass": true,
-      "detail": ""
-    },
-    {
       "name": "table:profiles",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "rls:profiles",
       "pass": true,
       "detail": ""
     },
@@ -185,17 +215,7 @@
       "detail": ""
     },
     {
-      "name": "rls:inventory_items",
-      "pass": true,
-      "detail": ""
-    },
-    {
       "name": "table:containers",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "rls:containers",
       "pass": true,
       "detail": ""
     },
@@ -205,17 +225,7 @@
       "detail": ""
     },
     {
-      "name": "rls:vendors",
-      "pass": true,
-      "detail": ""
-    },
-    {
       "name": "table:procurement_requests",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "rls:procurement_requests",
       "pass": true,
       "detail": ""
     },
@@ -225,17 +235,7 @@
       "detail": ""
     },
     {
-      "name": "rls:procurement_items",
-      "pass": true,
-      "detail": ""
-    },
-    {
       "name": "table:usage_logs",
-      "pass": true,
-      "detail": ""
-    },
-    {
-      "name": "rls:usage_logs",
       "pass": true,
       "detail": ""
     },
@@ -245,232 +245,272 @@
       "detail": ""
     },
     {
-      "name": "rls:attachments",
-      "pass": true,
-      "detail": ""
-    },
-    {
       "name": "table:audit_logs",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "rls:audit_logs",
+      "name": "table:notification_acknowledgements",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "function:current_lab_id",
+      "name": "table:equipment",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "function:current_role",
+      "name": "table:equipment_bookings",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "function:is_admin",
+      "name": "table:equipment_service_logs",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "function:consume_inventory",
+      "name": "table:storage_locations",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "function:adjust_inventory",
+      "name": "table:samples",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "function:place_order",
+      "name": "rls:equipment",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "function:receive_procurement",
+      "name": "rls:equipment_bookings",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "storage-bucket",
+      "name": "rls:equipment_service_logs",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "storage-lab-scope",
+      "name": "rls:storage_locations",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "audit-trigger",
+      "name": "rls:samples",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "stock-trigger",
+      "name": "rpc:current_lab_id",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "realtime-publication",
+      "name": "rpc:current_role",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "role-not-user-metadata",
+      "name": "rpc:is_admin",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "admin-rpc-checks",
+      "name": "rpc:consume_inventory",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "version-060",
+      "name": "rpc:adjust_inventory",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "dashboard-nav",
+      "name": "rpc:approve_request",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "dashboard-render",
+      "name": "rpc:place_order",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "dashboard-recent-usage",
+      "name": "rpc:receive_procurement",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "inventory-detail-route",
+      "name": "approval-status",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "inventory-detail-ledger",
+      "name": "order-requires-approved",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "inventory-detail-consumption",
+      "name": "active-profile-gate",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-nav",
+      "name": "team-rls",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-builder",
+      "name": "equipment-rls",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-low-stock",
+      "name": "booking-own",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-expiry",
+      "name": "samples-owner",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-procurement",
+      "name": "storage-location",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-ack-client",
+      "name": "attachments-expanded",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-table-migration",
+      "name": "realtime-final",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-rls-migration",
+      "name": "private-storage",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-user-scope",
+      "name": "no-secret",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-lab-scope",
+      "name": "project-url",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-realtime",
+      "name": "publishable-key",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "notification-base-schema",
+      "name": "service-worker",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "v06-css-dashboard",
+      "name": "no-local-db",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "v06-css-notifications",
+      "name": "invite-profile-email",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "service-worker-v060",
+      "name": "invite-admin-auth",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "upgrade-doc",
+      "name": "booking-no-overlap",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "pages-checkout-current",
+      "name": "service-equipment-lab-integrity",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "pages-configure-current",
+      "name": "sample-location-lab-integrity",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "pages-upload-current",
+      "name": "storage-parent-lab-integrity",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "pages-deploy-current",
+      "name": "request-item-lab-integrity",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "pages-permissions",
+      "name": "profile-audit",
       "pass": true,
       "detail": ""
     },
     {
-      "name": "html-supabase-login",
+      "name": "camera-fallback",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "equipment-notifications",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sample-notifications",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "approval-ui",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "team-deactivation",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "equipment-documents",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sample-documents",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "final-acceptance-doc",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest-final",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "github-pages-actions",
       "pass": true,
       "detail": ""
     },
@@ -495,7 +535,7 @@
       "detail": "200"
     },
     {
-      "name": "http:/supabase-client.js",
+      "name": "http:/styles.css",
       "pass": true,
       "detail": "200"
     },
@@ -505,22 +545,13 @@
       "detail": "200"
     },
     {
-      "name": "http:/styles.css",
-      "pass": true,
-      "detail": "200"
-    },
-    {
-      "name": "http:/manifest.webmanifest",
-      "pass": true,
-      "detail": "200"
-    },
-    {
-      "name": "http:/supabase/migrations/v0.6.sql",
+      "name": "http:/supabase/migrations/v1.0.sql",
       "pass": true,
       "detail": "200"
     }
   ],
   "limitations": [
-    "Live Supabase transaction/RLS behavior for the new notification acknowledgement table must be acceptance-tested after applying supabase/migrations/v0.6.sql to the deployed project. Existing v0.5 production backend behavior is not modified by this additive migration."
+    "Static/package checks do not replace live Supabase migration/RLS/transaction acceptance. Run FINAL_ACCEPTANCE_CHECKLIST.md after applying v1.0.sql.",
+    "Camera BarcodeDetector support varies by browser; manual and keyboard-wedge scanning are retained as fallback."
   ]
 }

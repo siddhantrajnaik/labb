@@ -14,7 +14,13 @@ export async function loadLabData(labId){
     supabase.from('vendors').select('*').eq('lab_id',labId).order('name'),
     supabase.from('procurement_requests').select('*, procurement_items(*)').eq('lab_id',labId).order('created_at',{ascending:false}),
     supabase.from('usage_logs').select('*').eq('lab_id',labId).order('created_at',{ascending:false}).limit(100),
-    supabase.from('audit_logs').select('*').eq('lab_id',labId).order('created_at',{ascending:false}).limit(100)
+    supabase.from('audit_logs').select('*').eq('lab_id',labId).order('created_at',{ascending:false}).limit(100),
+    supabase.from('profiles').select('*').eq('lab_id',labId).order('display_name'),
+    supabase.from('equipment').select('*').eq('lab_id',labId).order('name'),
+    supabase.from('equipment_bookings').select('*').eq('lab_id',labId).order('start_at',{ascending:false}).limit(200),
+    supabase.from('equipment_service_logs').select('*').eq('lab_id',labId).order('serviced_at',{ascending:false}).limit(200),
+    supabase.from('storage_locations').select('*').eq('lab_id',labId).order('name'),
+    supabase.from('samples').select('*').eq('lab_id',labId).order('created_at',{ascending:false}).limit(500)
   ];
   const r = await Promise.all(q);
   r.forEach(x=>{if(x.error)throw x.error});
@@ -25,7 +31,7 @@ export async function loadLabData(labId){
     if(!['PGRST205','42P01'].includes(ackResult.error.code)) throw ackResult.error;
     console.warn('Labb v0.6 notification migration is not installed yet.');
   } else acks=ackResult.data||[];
-  return {lab:r[0].data,inventory:r[1].data||[],containers:r[2].data||[],vendors:r[3].data||[],procurement:(r[4].data||[]).map(x=>({...x,items:x.procurement_items||[]})),usage:r[5].data||[],audit:r[6].data||[],acks};
+  return {lab:r[0].data,inventory:r[1].data||[],containers:r[2].data||[],vendors:r[3].data||[],procurement:(r[4].data||[]).map(x=>({...x,items:x.procurement_items||[]})),usage:r[5].data||[],audit:r[6].data||[],profiles:r[7].data||[],equipment:r[8].data||[],bookings:r[9].data||[],serviceLogs:r[10].data||[],locations:r[11].data||[],samples:r[12].data||[],acks};
 }
 
 export async function addInventory(labId,row){return ok(await supabase.from('inventory_items').insert({...row,lab_id:labId}).select().single());}
@@ -42,5 +48,16 @@ export async function ackNotification(labId,notificationKey){return ok(await sup
 export async function uploadDocument(labId,entityType,entityId,file){const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=`${labId}/${entityType}/${entityId}/${crypto.randomUUID()}-${safe}`;ok(await supabase.storage.from('labb-documents').upload(path,file,{upsert:false}));return ok(await supabase.from('attachments').insert({lab_id:labId,entity_type:entityType,entity_id:String(entityId),file_name:file.name,storage_path:path,mime_type:file.type||null,size_bytes:file.size}).select().single());}
 export async function listAttachments(labId,entityType,entityId){return ok(await supabase.from('attachments').select('*').eq('lab_id',labId).eq('entity_type',entityType).eq('entity_id',String(entityId)).order('created_at',{ascending:false}));}
 export async function signedDocumentUrl(path){return ok(await supabase.storage.from('labb-documents').createSignedUrl(path,300));}
-export function subscribeLab(labId,onChange){const tables=['inventory_items','containers','vendors','procurement_requests','procurement_items','usage_logs','attachments','notification_acknowledgements'];const channel=supabase.channel(`labb-${labId}`);tables.forEach(table=>channel.on('postgres_changes',{event:'*',schema:'public',table,filter:`lab_id=eq.${labId}`},onChange));channel.subscribe();return ()=>supabase.removeChannel(channel);}
+export function subscribeLab(labId,onChange){const tables=['inventory_items','containers','vendors','procurement_requests','procurement_items','usage_logs','attachments','notification_acknowledgements','profiles','equipment','equipment_bookings','equipment_service_logs','storage_locations','samples'];const channel=supabase.channel(`labb-${labId}`);tables.forEach(table=>channel.on('postgres_changes',{event:'*',schema:'public',table,filter:`lab_id=eq.${labId}`},onChange));channel.subscribe();return ()=>supabase.removeChannel(channel);}
+
+export async function approveRequest(requestId,note=''){return ok(await supabase.rpc('approve_request',{p_request_id:requestId,p_note:note||''}));}
+export async function updateTeamMember(userId,row){return ok(await supabase.from('profiles').update(row).eq('id',userId).select().single());}
+export async function addEquipment(labId,row){return ok(await supabase.from('equipment').insert({...row,lab_id:labId}).select().single());}
+export async function updateEquipment(id,row){return ok(await supabase.from('equipment').update(row).eq('id',id).select().single());}
+export async function addBooking(labId,row){return ok(await supabase.from('equipment_bookings').insert({...row,lab_id:labId}).select().single());}
+export async function addServiceLog(labId,row){return ok(await supabase.from('equipment_service_logs').insert({...row,lab_id:labId}).select().single());}
+export async function addLocation(labId,row){return ok(await supabase.from('storage_locations').insert({...row,lab_id:labId}).select().single());}
+export async function addSample(labId,row){return ok(await supabase.from('samples').insert({...row,lab_id:labId}).select().single());}
+export async function updateSample(id,row){return ok(await supabase.from('samples').update(row).eq('id',id).select().single());}
+
 export async function inviteUser(email,displayName,role,redirectTo){return ok(await supabase.functions.invoke('invite-user',{body:{email,display_name:displayName,role,redirectTo}}));}

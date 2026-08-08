@@ -1,21 +1,10 @@
-# Supabase project connection
+# Production connection
 
-Configured project URL:
+- GitHub repository: `https://github.com/siddhantrajnaik/labb.git`
+- GitHub Pages: `https://siddhantrajnaik.github.io/labb/`
+- Supabase project: `https://hsxwsutqpsvrueuohahr.supabase.co`
+- Browser publishable key: configured in `config.js`
 
-`https://hsxwsutqpsvrueuohahr.supabase.co`
+This release is already project-specific. Do not place any `sb_secret_...`, service-role key, database password, or JWT signing secret in the repository.
 
-## Still required
-
-Set `SUPABASE_PUBLISHABLE_KEY` in `config.js` to the project's browser-safe **publishable key** (or legacy anon key).
-
-Do not place any `service_role`, `sb_secret_...`, or other secret key in this GitHub Pages repository.
-
-After the publishable key is configured:
-1. Run `supabase/schema.sql` in the Supabase SQL editor.
-2. Bootstrap the first admin using `supabase/bootstrap_first_admin.sql` as documented in `SUPABASE_SETUP.md`.
-3. Deploy the repository to GitHub Pages.
-4. Run the live checks in `VERIFICATION_CHECKLIST.md`.
-
-
-## v0.6
-Frontend project URL and publishable key are configured. Run `supabase/migrations/v0.6.sql` before deploying the v0.6 branch.
+For the existing deployment, run `supabase/migrations/v1.0.sql` before deploying the v1.0 frontend. For a new blank Supabase project, use the integrated `supabase/schema.sql` instead.

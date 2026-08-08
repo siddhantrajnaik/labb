@@ -25,7 +25,7 @@ Deno.serve(async(req)=>{
     const {data,error}=await admin.auth.admin.inviteUserByEmail(email,{redirectTo,data:{display_name}})
     if(error) throw error
     if(!data.user) throw new Error('Invite did not return a user')
-    const {error:insertError}=await admin.from('profiles').insert({id:data.user.id,lab_id:profile.lab_id,display_name:display_name||email,role})
+    const {error:insertError}=await admin.from('profiles').insert({id:data.user.id,lab_id:profile.lab_id,display_name:display_name||email,email,role,active:true})
     if(insertError) throw insertError
     return Response.json({ok:true,user_id:data.user.id},{headers:{...cors,'Content-Type':'application/json'}})
   }catch(e){return Response.json({error:e instanceof Error?e.message:String(e)},{status:400,headers:{...cors,'Content-Type':'application/json'}})}

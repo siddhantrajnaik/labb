@@ -37,3 +37,10 @@ Database triggers write audit events for operational tables. Clients receive SEL
 - Test every RLS policy with Admin, Member and unauthenticated sessions.
 - Enable database backups appropriate to the laboratory's retention requirements.
 - For sensitive regulated data, perform an institutional security/compliance review before production use.
+
+## v1.0 additions
+- Deactivated profiles are excluded by `current_lab_id()` / `current_role()`, causing normal lab RLS access to fail.
+- Procurement ordering requires an Admin-approved request through `approve_request()` before `place_order()`.
+- Equipment, bookings, service logs, storage locations, and samples have lab-scoped RLS.
+- Cross-table lab integrity is checked for procurement items, equipment service records, storage parent locations, and sample locations.
+- Confirmed equipment bookings have a database overlap exclusion constraint.
